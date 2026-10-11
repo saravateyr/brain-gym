@@ -1,6 +1,6 @@
 // Offline support: caches the whole app on first visit.
 // IMPORTANT: change VERSION whenever you upload new files, so phones pick up the update.
-const VERSION = 'brain-gym-v1';
+const VERSION = 'brain-gym-v2';
 const FILES = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const FILES = [
   './js/util.js',
   './js/gen-iq.js',
   './js/gen-math.js',
+  './js/gen-lang.js',
   './js/app.js',
   './manifest.webmanifest',
   './icons/icon-192.png',

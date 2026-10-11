@@ -3,10 +3,18 @@
 const SECTIONS = {
   iq: { title: 'Intelligence Test', sub: 'बुद्धिमत्ता चाचणी', icon: '🧠', color: 'violet' },
   math: { title: 'Maths', sub: 'गणित', icon: '➗', color: 'teal' },
+  eng: { title: 'English', sub: 'First language · Paper 1', icon: '📖', color: 'blue' },
+  mar: { title: 'Marathi', sub: 'मराठी · Third language · Paper 2', icon: '🌸', color: 'pink' },
 };
 const LEVELS = [null, { name: 'Easy', icon: '🌱' }, { name: 'Medium', icon: '🌿' }, { name: 'Hard', icon: '🌳' }];
 const SET_SIZE = 10;
-const MOCK = { iq: 10, math: 10, minutes: 20, marks: 2 };
+// Paper 1 / Paper 2 follow the real exam's split: about one third language, two thirds Maths / Intelligence.
+const MOCK = { minutes: 20, marks: 2 };
+const MOCK_TYPES = {
+  p1: { title: 'Paper 1 style', sub: 'English + Maths', icon: '📘', parts: [['eng', 7], ['math', 13]] },
+  p2: { title: 'Paper 2 style', sub: 'Marathi + Intelligence Test', icon: '📙', parts: [['mar', 7], ['iq', 13]] },
+  mix: { title: 'Mixed', sub: 'Intelligence Test + Maths', icon: '📝', parts: [['iq', 10], ['math', 10]] },
+};
 
 // ---------------------------------------------------------------- Storage
 const Store = {
@@ -58,7 +66,7 @@ function makeSet(pairs) { // pairs: [[id, level], ...]
       let q;
       try { q = GEN[id].gen(lv); } catch (e) { console.error(id, lv, e); continue; }
       if (!validQ(q)) continue;
-      const key = q.q + q.visual;
+      const key = q.q + q.visual + q.options.slice().sort().join('|');
       if (seen.has(key) && tries < 40) continue;
       seen.add(key); q.cat = id; q.level = lv; out.push(q); break;
     }
@@ -101,7 +109,7 @@ function renderHome() {
       }).join('')}
       <a class="big-card orange" href="#/mock">
         <span class="bc-icon">📝</span>
-        <span class="bc-text"><b>Mock Test</b><small>${MOCK.iq + MOCK.math} mixed questions · ${MOCK.minutes} minutes</small></span>
+        <span class="bc-text"><b>Mock Test</b><small>Paper 1 · Paper 2 · Mixed — 20 questions, ${MOCK.minutes} min</small></span>
         <span class="bc-stars">${lastMock ? `Last: ${lastMock.score}/${lastMock.total}` : 'New'}</span></a>
     </div>
     <div class="home-foot">
@@ -164,11 +172,11 @@ function renderQuestion() {
       <span class="count">${p.i + 1}/${p.qs.length}</span>
     </div>
     <div class="qhead">${g.icon} ${g.title} · ${LEVELS[p.lv].name} <span class="score">✅ ${p.score}</span></div>
-    <div class="qcard">
+    <div class="qcard" ${g.lang ? `lang="${g.lang}"` : ''}>
       <div class="qtext">${q.q}</div>
       ${q.visual ? `<div class="visual">${q.visual}</div>` : ''}
     </div>
-    <div class="options">
+    <div class="options" ${g.lang ? `lang="${g.lang}"` : ''}>
       ${q.options.map((o, i) => `<button class="opt" data-i="${i}"><span class="num">${i + 1}</span><span class="otext">${o}</span></button>`).join('')}
     </div>
     <div class="hintrow"><button class="btn ghost" id="hintBtn">💡 Hint</button></div>
@@ -240,28 +248,25 @@ function renderMockIntro() {
   setScreen(`
     <div class="bar"><a class="back" href="#/" aria-label="Back">←</a><h2>📝 Mock Test</h2></div>
     <div class="card">
-      <p>Just like the scholarship exam:</p>
-      <ul class="plain">
-        <li>🧠 ${MOCK.iq} Intelligence Test questions</li>
-        <li>➗ ${MOCK.math} Maths questions</li>
-        <li>⏱️ ${MOCK.minutes} minutes · ${MOCK.marks} marks each</li>
-        <li>No hints. Answers are shown at the end.</li>
-      </ul>
-      <button class="btn primary big" id="startMock">Start test</button>
+      <p>Like the scholarship exam: 20 questions · ${MOCK.minutes} minutes · ${MOCK.marks} marks each. No hints — answers are shown at the end.</p>
+      <div class="mock-types">
+        ${Object.entries(MOCK_TYPES).map(([k, t]) => `<button class="btn primary big mt" data-type="${k}"><span>${t.icon}</span><span class="mt-text"><b>${t.title}</b><small>${t.sub}</small></span></button>`).join('')}
+      </div>
     </div>
-    ${hist.length ? `<h3 class="subhead">Recent tests</h3><div class="card"><table class="hist">${hist.map(m => `<tr><td>${new Date(m.at).toLocaleDateString('en-IN')}</td><td>${m.score}/${m.total} marks</td><td>${Math.round(m.score / m.total * 100)}%</td></tr>`).join('')}</table></div>` : ''}`, 'mock orange');
-  document.getElementById('startMock').onclick = () => { startMock(); go('#/mock/run'); };
+    ${hist.length ? `<h3 class="subhead">Recent tests</h3><div class="card"><table class="hist">${hist.map(m => `<tr><td>${new Date(m.at).toLocaleDateString('en-IN')}</td><td>${(MOCK_TYPES[m.type] || MOCK_TYPES.mix).title}</td><td>${m.score}/${m.total}</td><td>${Math.round(m.score / m.total * 100)}%</td></tr>`).join('')}</table></div>` : ''}`, 'mock orange');
+  document.querySelectorAll('[data-type]').forEach(b => b.onclick = () => { startMock(b.dataset.type); go('#/mock/run'); });
 }
 
-function startMock() {
+function startMock(type) {
   const lvPick = () => U.pick([1, 2, 2, 2, 3, 3]);
-  const pairs = sec => {
-    const cats = catsOf(sec).map(g => g.id), n = sec === 'iq' ? MOCK.iq : MOCK.math;
+  const pairs = (sec, n) => {
+    const cats = catsOf(sec).map(g => g.id);
     const list = U.shuffle(cats).concat(U.shuffle(cats)).slice(0, n);
     return list.map(id => [id, lvPick()]);
   };
-  const qs = makeSet(pairs('iq').concat(pairs('math')));
-  mock = { qs, ans: Array(qs.length).fill(null), i: 0, end: Date.now() + MOCK.minutes * 60000, done: false };
+  const t = MOCK_TYPES[type] || MOCK_TYPES.mix;
+  const qs = makeSet(t.parts.flatMap(([sec, n]) => pairs(sec, n)));
+  mock = { type: MOCK_TYPES[type] ? type : 'mix', qs, ans: Array(qs.length).fill(null), i: 0, end: Date.now() + MOCK.minutes * 60000, done: false };
 }
 
 function renderMockRun() {
@@ -274,11 +279,11 @@ function renderMockRun() {
       <span class="count timer" id="timer"></span>
     </div>
     <div class="qhead">Q ${m.i + 1} of ${m.qs.length} · ${g.icon} ${g.title}</div>
-    <div class="qcard">
+    <div class="qcard" ${g.lang ? `lang="${g.lang}"` : ''}>
       <div class="qtext">${q.q}</div>
       ${q.visual ? `<div class="visual">${q.visual}</div>` : ''}
     </div>
-    <div class="options">
+    <div class="options" ${g.lang ? `lang="${g.lang}"` : ''}>
       ${q.options.map((o, i) => `<button class="opt ${m.ans[m.i] === i ? 'picked' : ''}" data-i="${i}"><span class="num">${i + 1}</span><span class="otext">${o}</span></button>`).join('')}
     </div>
     <div class="mocknav">
@@ -317,13 +322,17 @@ function finishMock() {
   stopTimer();
   const m = mock; m.done = true;
   const right = m.qs.map((q, i) => m.ans[i] === q.answer);
-  const secScore = sec => m.qs.reduce((s, q, i) => s + (GEN[q.cat].section === sec && right[i] ? 1 : 0), 0);
+  const parts = MOCK_TYPES[m.type].parts.map(([sec]) => ({
+    sec,
+    got: m.qs.reduce((s, q, i) => s + (GEN[q.cat].section === sec && right[i] ? 1 : 0), 0),
+    of: m.qs.filter(q => GEN[q.cat].section === sec).length,
+  }));
   const score = right.filter(Boolean).length * MOCK.marks, total = m.qs.length * MOCK.marks;
-  Store.d.mocks.push({ at: Date.now(), score, total });
+  Store.d.mocks.push({ at: Date.now(), type: m.type, score, total });
   Store.d.mocks = Store.d.mocks.slice(-20);
   Store.save();
   Sound.play(score / total >= 0.6 ? 'win' : 'good');
-  m.result = { right, score, total, iq: secScore('iq'), math: secScore('math') };
+  m.result = { right, score, total, parts };
   location.replace('#/mock/result');
 }
 
@@ -335,7 +344,7 @@ function renderMockResult() {
     <div class="result small">
       <h2>${r.score} / ${r.total} marks</h2>
       <p>${pct >= 80 ? 'Excellent! 🏆' : pct >= 60 ? 'Good job! 👍' : 'Keep practising — you will improve! 💪'} (${pct}%)</p>
-      <div class="split"><span>🧠 Intelligence: <b>${r.iq}/${MOCK.iq}</b></span><span>➗ Maths: <b>${r.math}/${MOCK.math}</b></span></div>
+      <div class="split">${r.parts.map(p => `<span>${SECTIONS[p.sec].icon} ${SECTIONS[p.sec].title}: <b>${p.got}/${p.of}</b></span>`).join('')}</div>
     </div>
     <h3 class="subhead">Check your answers</h3>
     ${m.qs.map((q, i) => `
@@ -347,7 +356,7 @@ function renderMockResult() {
         <div class="why"><b>Why?</b><br>${q.explain}</div>
       </details>`).join('')}
     <div class="r-btns"><button class="btn primary" id="again">🔁 New mock test</button><a class="btn ghost" href="#/">🏠 Home</a></div>`, 'mock orange');
-  document.getElementById('again').onclick = () => { startMock(); go('#/mock/run'); };
+  document.getElementById('again').onclick = () => { startMock(m.type); go('#/mock/run'); };
 }
 
 // ---------------------------------------------------------------- Settings
@@ -364,7 +373,7 @@ function renderSettings() {
     </div>
     <div class="card">
       <b>About</b>
-      <p class="muted">Brain Gym — practice puzzles for Maharashtra State Board Std 4 and the scholarship exam (शिष्यवृत्ती परीक्षा): Intelligence Test and Maths. Works offline once installed.</p>
+      <p class="muted">Brain Gym — practice puzzles for Maharashtra State Board Std 4 and the scholarship exam (शिष्यवृत्ती परीक्षा): Intelligence Test, Maths, English and Marathi. Works offline once installed. Version 2.</p>
       <p class="muted">Install: open in Chrome → ⋮ menu → “Add to Home screen” / “Install app”.</p>
     </div>`, 'settings');
   document.getElementById('snd').onchange = e => { Store.d.sound = e.target.checked; Store.save(); };
@@ -411,6 +420,7 @@ Store.load();
 window.addEventListener('hashchange', route);
 route();
 
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+// Offline cache only on the real site — on localhost it would keep serving old files while editing.
+if ('serviceWorker' in navigator && location.protocol.startsWith('http') && location.hostname !== 'localhost') {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 }

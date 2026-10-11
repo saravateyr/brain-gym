@@ -69,7 +69,8 @@ const U = {
     if (typeof o.correct === 'number') {
       for (let k = 1; opts.length < 4 && k < 50; k++) { add(o.correct + k); add(o.correct - k); }
     }
-    const shuffled = o.keepOrder ? opts : U.shuffle(opts);
+    // fixedOrder: show options in this exact order (e.g. parts of speech), otherwise shuffle
+    const shuffled = o.fixedOrder ? o.fixedOrder.map(fmt).filter(s => opts.includes(s)) : U.shuffle(opts);
     return {
       q: o.q, visual: o.visual || '', options: shuffled, answer: shuffled.indexOf(c),
       hint: o.hint || '', explain: o.explain || ''

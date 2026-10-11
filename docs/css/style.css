@@ -10,6 +10,10 @@
   --teal-soft: #dcf5f1;
   --orange: #f07b1d;
   --orange-soft: #ffeedd;
+  --blue: #2a7de1;
+  --blue-soft: #e1eefd;
+  --pink: #d6457c;
+  --pink-soft: #fde6ef;
   --good: #2fa866;
   --good-soft: #e3f7ec;
   --bad: #e0483e;
@@ -35,6 +39,8 @@ button { font: inherit; color: inherit; }
 .screen.teal { --accent: var(--teal); --accent-soft: var(--teal-soft); }
 .screen.orange { --accent: var(--orange); --accent-soft: var(--orange-soft); }
 .screen.violet { --accent: var(--violet); --accent-soft: var(--violet-soft); }
+.screen.blue { --accent: var(--blue); --accent-soft: var(--blue-soft); }
+.screen.pink { --accent: var(--pink); --accent-soft: var(--pink-soft); }
 
 /* ---------- Home ---------- */
 .hero { text-align: center; padding: 18px 0 10px; }
@@ -48,6 +54,8 @@ button { font: inherit; color: inherit; }
 .big-card.violet { background: linear-gradient(135deg, #7d6cff, #5b4bdb); }
 .big-card.teal { background: linear-gradient(135deg, #20c3a7, #0f9b8e); }
 .big-card.orange { background: linear-gradient(135deg, #ffa24c, #f07b1d); }
+.big-card.blue { background: linear-gradient(135deg, #4d9bf5, #2a7de1); }
+.big-card.pink { background: linear-gradient(135deg, #ef6fa0, #d6457c); }
 .bc-icon { font-size: 38px; width: 58px; height: 58px; display: grid; place-items: center; background: rgba(255,255,255,.2); border-radius: 16px; flex: none; }
 .bc-text { flex: 1; display: flex; flex-direction: column; }
 .bc-text b { font-size: 20px; }
@@ -162,6 +170,14 @@ button { font: inherit; color: inherit; }
 .subhead { margin: 20px 0 10px; }
 .hist { width: 100%; border-collapse: collapse; font-size: 15px; }
 .hist td { padding: 6px 4px; border-bottom: 1px solid var(--line); }
+.mock-types { display: grid; gap: 10px; margin-top: 12px; }
+.btn.mt { justify-content: flex-start; gap: 14px; text-align: left; font-size: 26px; }
+.mt-text { display: flex; flex-direction: column; font-size: 17px; }
+.mt-text small { font-weight: 500; opacity: .9; font-size: 14px; }
+.sent { display: inline-block; margin-top: 8px; font-size: 21px; }
+.sent u { text-decoration-color: var(--accent); text-decoration-thickness: 3px; text-underline-offset: 5px; }
+.spaced { letter-spacing: 3px; font-size: 22px; }
+[lang="mr"] .qtext, [lang="mr"] .otext { font-size: 1.08em; line-height: 1.55; }
 .mocknav { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; margin-top: 16px; }
 .mocknav .btn.ghost { width: 100%; }
 .dots { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 16px; }
